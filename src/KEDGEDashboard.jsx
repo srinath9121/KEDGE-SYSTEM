@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useMotionTemplate } from "framer-motion";
 import {
   LineChart, Line, BarChart, Bar, RadarChart, Radar,
   PolarGrid, PolarAngleAxis, PieChart, Pie, Cell,
@@ -9,6 +9,7 @@ import {
   TrendingUp, TrendingDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Minus,
   EllipsisVertical, Send, CheckSquare, Globe, Activity, Shield, Home, DollarSign, Users, Settings, Layers, Star
 } from "lucide-react";
+
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from "./components/ui/pie-chart";
 import { RingChart, Ring, RingCenter } from "./components/ui/ring-chart";
 import LoadingScreen from "./components/LoadingScreen";
@@ -364,48 +365,137 @@ function Badge({ status, label }) {
     </span>
   );
 }
+function AnimatedNumber({ children }) {
+  const [count, setCount] = useState(0);
+  const text = String(children);
+  // Match prefix, number (with possible decimals/commas), and suffix
+  const match = text.match(/^([^0-9.-]*)([0-9,.-]+)(.*)$/);
+  
+  useEffect(() => {
+    if (!match) return;
+    const target = parseFloat(match[2].replace(/,/g, ''));
+    if (isNaN(target)) return;
+    
+    let startTime = null;
+    const duration = 1500;
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      // easeOutExpo
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setCount(easeProgress * target);
+      if (progress < 1) window.requestAnimationFrame(step);
+    };
+    window.requestAnimationFrame(step);
+  }, [text]); // re-run if text changes
+
+  if (!match) return <>{text}</>;
+  const prefix = match[1];
+  const numStr = match[2];
+  const suffix = match[3];
+  const decimals = numStr.includes('.') ? numStr.split('.')[1].length : 0;
+  
+  return <>{prefix}{count.toFixed(decimals)}{suffix}</>;
+}
+
 
 function KpiCard({ label, value, sub, change, changeUp, accent }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
   return (
-    <div style={{
-      background:C.surface, border:`1px solid ${C.border}`,
-      borderRadius:10, padding:"20px 22px",
-      borderTop:`2px solid ${accent || C.blue}`,
-    }}>
-      <div style={{ fontSize:12, fontWeight:500, color:C.textMid, marginBottom:10 }}>{label}</div>
-      <div style={{ fontSize:28, fontWeight:700, color:C.text, lineHeight:1 }}>
-        {value}
-        {sub && <span style={{ fontSize:14, fontWeight:400, color:C.textMid, marginLeft:4 }}>{sub}</span>}
-      </div>
-      {change && (
-        <div style={{ fontSize:12, color:changeUp ? C.green : C.red, marginTop:8, display:"flex", alignItems:"center", gap:4 }}>
-          {changeUp ? "↑" : "↓"} {change}
+    <motion.div
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ y: -2, boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px ${accent || C.blue}40` }}
+      transition={{ duration: 0.4 }}
+      style={{
+        position: "relative",
+        background:C.surface, border:`1px solid ${C.border}`,
+        borderRadius:12, padding:"20px 22px",
+        borderTop:`2px solid ${accent || C.blue}`,
+        overflow: "hidden"
+      }}
+    >
+      <motion.div
+        style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none",
+          background: useMotionTemplate`radial-gradient(300px circle at ${mouseX}px ${mouseY}px, ${accent ? accent + '15' : 'rgba(37, 99, 235, 0.08)'}, transparent 80%)`,
+          opacity: 0, transition: "opacity 0.3s"
+        }}
+        whileHover={{ opacity: 1 }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ fontSize:12, fontWeight:500, color:C.textMid, marginBottom:10 }}>{label}</div>
+        <div style={{ fontSize:28, fontWeight:700, color:C.text, lineHeight:1, fontVariantNumeric: "tabular-nums" }}>
+          <AnimatedNumber>{value}</AnimatedNumber>
+          {sub && <span style={{ fontSize:14, fontWeight:400, color:C.textMid, marginLeft:4 }}>{sub}</span>}
         </div>
-      )}
-    </div>
+        {change && (
+          <div style={{ fontSize:12, color:changeUp ? C.green : C.red, marginTop:8, display:"flex", alignItems:"center", gap:4 }}>
+            {changeUp ? "↑" : "↓"} {change}
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
 function Card({ title, subtitle, children, action }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
   return (
-    <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"20px 22px" }}>
-      <div style={{
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        marginBottom:18, paddingBottom:14, borderBottom:`1px solid ${C.border}`,
-      }}>
-        <div>
-          <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{title}</div>
-          {subtitle && <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>{subtitle}</div>}
+    <motion.div 
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px ${C.borderLight}` }}
+      transition={{ duration: 0.4 }}
+      style={{ position: "relative", background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"20px 22px", overflow: "hidden" }}
+    >
+      <motion.div
+        style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", zIndex: 0,
+          background: useMotionTemplate`radial-gradient(400px circle at ${mouseX}px ${mouseY}px, rgba(255,255,255,0.03), transparent 80%)`,
+          opacity: 0, transition: "opacity 0.3s"
+        }}
+        whileHover={{ opacity: 1 }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          marginBottom:18, paddingBottom:14, borderBottom:`1px solid ${C.border}`,
+        }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:600, color:C.text }}>{title}</div>
+            {subtitle && <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>{subtitle}</div>}
+          </div>
+          {action && (
+            <button style={{
+              fontSize:12, fontWeight:500, color:C.blue, background:"none",
+              border:`1px solid ${C.borderLight}`, borderRadius:6, padding:"5px 12px", cursor:"pointer",
+            }}>{action}</button>
+          )}
         </div>
-        {action && (
-          <button style={{
-            fontSize:12, fontWeight:500, color:C.blue, background:"none",
-            border:`1px solid ${C.borderLight}`, borderRadius:6, padding:"5px 12px", cursor:"pointer",
-          }}>{action}</button>
-        )}
+        {children}
       </div>
-      {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -442,7 +532,7 @@ function AlertItem({ level, tag, msg }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ active, onSelect, profile }) {
+function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
   const getNavItems = () => {
     if (profile === "facility") {
       return [{ category: "Facility Operations", items: facilityNavItems }];
@@ -459,47 +549,62 @@ function Sidebar({ active, onSelect, profile }) {
   const sections = getNavItems();
 
   return (
-    <aside style={{
-      width:220, minHeight:"100vh", background:C.surface,
-      borderRight:`1px solid ${C.border}`,
-      display:"flex", flexDirection:"column",
-      position:"fixed", top:0, left:0, zIndex:30,
-    }}>
-      <div style={{ padding:"22px 20px 18px", borderBottom:`1px solid ${C.border}` }}>
+    <motion.aside 
+      animate={{ width: collapsed ? 80 : 220 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      style={{
+        minHeight:"100vh", background:C.surface,
+        borderRight:`1px solid ${C.border}`,
+        display:"flex", flexDirection:"column",
+        position:"fixed", top:0, left:0, zIndex:30,
+        overflow: "hidden", whiteSpace: "nowrap"
+      }}
+    >
+      <div style={{ padding:"22px 20px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <div style={{
             width:32, height:32, background:C.blue, borderRadius:8,
             display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:15, fontWeight:800, color:"#fff",
+            fontSize:15, fontWeight:800, color:"#fff", flexShrink: 0
           }}>K</div>
-          <div>
+          <motion.div animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}>
             <div style={{ fontSize:15, fontWeight:700, color:C.text, letterSpacing:0.3 }}>KEDGE</div>
             <div style={{ fontSize:10, color:C.textDim, letterSpacing:0.5, textTransform:"uppercase" }}>Console</div>
-          </div>
+          </motion.div>
         </div>
+        <button onClick={onToggle} style={{ background:"transparent", border:"none", color:C.textMid, cursor:"pointer", display: collapsed ? "none" : "block" }}>
+          <Minus size={18} />
+        </button>
       </div>
 
-      <nav style={{ padding:"12px 10px", flex:1, overflowY:"auto" }}>
+      <nav style={{ padding:"12px 10px", flex:1, overflowY:"auto", overflowX: "hidden" }}>
         {sections.map((section, sIdx) => (
           <div key={section.category} style={{ marginBottom:16 }}>
-            <div style={{ fontSize:10, fontWeight:600, color:C.textDim, letterSpacing:1, textTransform:"uppercase", padding:"8px 10px 6px" }}>
+            <motion.div 
+              animate={{ opacity: collapsed ? 0 : 1, height: collapsed ? 0 : "auto" }}
+              style={{ fontSize:10, fontWeight:600, color:C.textDim, letterSpacing:1, textTransform:"uppercase", padding:"8px 10px 6px" }}>
               {section.category}
-            </div>
+            </motion.div>
             {section.items.map(({ id, icon, label }) => {
               const on = active === id;
               return (
-                <button key={id} onClick={() => onSelect(id)} style={{
-                  display:"flex", alignItems:"center", gap:10, width:"100%",
-                  padding:"9px 12px", borderRadius:7, marginBottom:2,
-                  background: on ? C.blueFaint : "none",
-                  border:"none", borderLeft:`2px solid ${on ? C.blue : "transparent"}`,
-                  color: on ? C.blue : C.textMid,
-                  fontSize:13, fontWeight: on ? 600 : 400,
-                  cursor:"pointer", textAlign:"left", transition:"all 0.15s",
-                }}>
-                  <span style={{ fontSize:14 }}>{icon}</span>
-                  {label}
-                </button>
+                <motion.button 
+                  key={id} 
+                  onClick={() => onSelect(id)} 
+                  whileHover={!on ? { x: 4, backgroundColor: "rgba(255, 255, 255, 0.04)" } : {}}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  style={{
+                    display:"flex", alignItems:"center", gap:10, width:"100%",
+                    padding:"9px 12px", borderRadius:7, marginBottom:2,
+                    background: on ? C.blueFaint : "transparent",
+                    border:"none", borderLeft:`2px solid ${on ? C.blue : "transparent"}`,
+                    color: on ? C.blue : C.textMid,
+                    fontSize:13, fontWeight: on ? 600 : 400,
+                    cursor:"pointer", textAlign:"left", position: "relative"
+                  }}>
+                  <span style={{ fontSize:14, flexShrink: 0, minWidth: 24, display: "flex", justifyContent: "center" }}>{icon}</span>
+                  <motion.span animate={{ opacity: collapsed ? 0 : 1 }}>{label}</motion.span>
+                </motion.button>
               );
             })}
           </div>
@@ -508,17 +613,17 @@ function Sidebar({ active, onSelect, profile }) {
 
       <div style={{ padding:"14px 16px", borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10 }}>
         <div style={{
-          width:30, height:30, borderRadius:"50%",
+          width:30, height:30, borderRadius:"50%", flexShrink: 0,
           background:`linear-gradient(135deg, ${C.blue}, #6366F1)`,
           display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:12, fontWeight:700, color:"#fff",
-        }}>O</div>
-        <div>
+          fontSize:12, fontWeight:700, color:"#fff", cursor: "pointer"
+        }} onClick={onToggle}>O</div>
+        <motion.div animate={{ opacity: collapsed ? 0 : 1 }}>
           <div style={{ fontSize:13, fontWeight:500, color:C.text }}>Owner</div>
           <div style={{ fontSize:11, color:C.textDim }}>All Access</div>
-        </div>
+        </motion.div>
       </div>
-    </aside>
+    </motion.aside>
   );
 }
 
@@ -1461,9 +1566,10 @@ function WebTrafficPage() {
         <AudienceMix />
         <BrowserShare />
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr 1fr", gap:16 }}>
         <TopPages />
         <TopReferrers />
+        <TopCountries />
       </div>
     </div>
   );
@@ -1730,6 +1836,7 @@ export default function KEDGEDashboard() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState("combined");
   const [activePage, setActivePage] = useState("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Keep page aligned when profile changes
   useEffect(() => {
@@ -1800,24 +1907,28 @@ export default function KEDGEDashboard() {
       </AnimatePresence>
 
       <div style={{ display:"flex", minHeight:"100vh", background:C.base, fontFamily:C.sans, color:C.text }}>
-        <Sidebar active={activePage} onSelect={setActivePage} profile={profile} />
-        <div style={{ marginLeft:220, flex:1, display:"flex", flexDirection:"column" }}>
+        <Sidebar active={activePage} onSelect={setActivePage} profile={profile} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <motion.div 
+          animate={{ marginLeft: sidebarCollapsed ? 80 : 220 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ flex:1, display:"flex", flexDirection:"column" }}
+        >
           <Header label={label} profile={profile} setProfile={setProfile} />
           <main style={{ padding:"24px 28px 48px", flex:1, position: "relative" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePage}
-                initial={{ clipPath: "inset(0% 100% 0% 0%)" }}
-                animate={{ clipPath: "inset(0% 0% 0% 0%)" }}
-                exit={{ clipPath: "inset(0% 0% 0% 100%)" }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, scale: 0.97, y: 20, filter: "blur(8px)" }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 1.03, y: -20, filter: "blur(8px)" }}
+                transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.8 }}
                 style={{ width: "100%", height: "100%" }}
               >
                 <Component />
               </motion.div>
             </AnimatePresence>
           </main>
-        </div>
+        </motion.div>
       </div>
     </>
   );

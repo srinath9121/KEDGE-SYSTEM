@@ -1,10 +1,9 @@
-import KEDGEDashboard from './KEDGEDashboard'
-import './index.css'
+import React from "react"
+import KEDGEDashboard from "./KEDGEDashboard"
+import "./index.css"
 
 function App() {
-  return (
-    <KEDGEDashboard />
-  )
+  return <KEDGEDashboard />
 }
 
 export default App
