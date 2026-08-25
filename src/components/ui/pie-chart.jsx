@@ -247,7 +247,7 @@ export function PieCenter({
         dominantBaseline="middle"
         fontSize={22}
         fontWeight={700}
-        fill="var(--foreground)"
+        fill="#F4F4F5"
       >
         {prefix}{formatted}{suffix}
       </text>
@@ -256,7 +256,7 @@ export function PieCenter({
         textAnchor="middle"
         dominantBaseline="middle"
         fontSize={12}
-        fill="var(--muted-foreground)"
+        fill="#A1A1AA"
       >
         {label}
       </text>
