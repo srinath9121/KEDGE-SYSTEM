@@ -7,7 +7,8 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Minus,
-  EllipsisVertical, Send, CheckSquare, Globe, Activity, Shield, Home, DollarSign, Users, Settings, Layers, Star
+  EllipsisVertical, Send, CheckSquare, Globe, Activity, Shield, Home, DollarSign, Users, Settings, Layers, Star,
+  RefreshCw, CheckCircle2, AlertTriangle, X, ChevronRight, Terminal, FileText, Eye, ShieldAlert
 } from "lucide-react";
 
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from "./components/ui/pie-chart";
@@ -235,11 +236,13 @@ const zoneRows = [
   { zone:"West Zone",  posts:"22 / 26", cov:"85%", status:"red",   tag:"Understaffed" },
 ];
 
-const alerts = [
+const ownerAlerts = [
   { level:"critical", tag:"Renewal", msg:"Pest control contract (South Zone) expires in 22 days — no renewal initiated." },
   { level:"warning",  tag:"SLA",     msg:"Landscaping vendor missed 2 of 4 scheduled visits this month." },
   { level:"warning",  tag:"Cost",    msg:"Elevator AMC vendor quote 14% above last renewal — benchmarking in progress." },
 ];
+
+const alerts = ownerAlerts;
 
 // ─── Digital Analytics Mock Data ──────────────────────────────────────────────
 const visitorChartData = [
@@ -329,11 +332,20 @@ const facilityNavItems = [
   { id:"financials",   icon:"↗", label:"Financials" },
 ];
 
+const staffNavItems = [
+  { id:"staff_overview", icon:"⊞", label:"My Dashboard" },
+  { id:"attendance",     icon:"◉", label:"Attendance & Shifts" },
+  { id:"payslips",       icon:"$", label:"Salary / Payslips" },
+  { id:"tasks",          icon:"✦", label:"Assigned Tasks" },
+  { id:"notices",        icon:"◈", label:"Company Notices" },
+];
+
 const digitalNavItems = [
-  { id:"webtraffic",   icon:"📊", label:"Web Traffic" },
-  { id:"livequeue",    icon:"⚡", label:"Live Queue" },
-  { id:"webvitals",    icon:"💡", label:"Web Vitals" },
-  { id:"supportteam",  icon:"👥", label:"Support Team" },
+  { id:"dataingestion", icon:"📥", label:"Data Ingestion" },
+  { id:"webtraffic",    icon:"📊", label:"Web Traffic" },
+  { id:"livequeue",     icon:"⚡", label:"Live Queue" },
+  { id:"webvitals",     icon:"💡", label:"Web Vitals" },
+  { id:"supportteam",   icon:"👥", label:"Support Team" },
 ];
 
 const navItems = facilityNavItems;
@@ -532,17 +544,14 @@ function AlertItem({ level, tag, msg }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
+function Sidebar({ active, onSelect, role, collapsed, onToggle }) {
   const getNavItems = () => {
-    if (profile === "facility") {
-      return [{ category: "Facility Operations", items: facilityNavItems }];
-    }
-    if (profile === "digital") {
-      return [{ category: "Digital Analytics", items: digitalNavItems }];
+    if (role === "staff") {
+      return [{ category: "Staff Workportal", items: staffNavItems }];
     }
     return [
-      { category: "Facility Operations", items: facilityNavItems },
-      { category: "Digital Analytics", items: digitalNavItems },
+      { category: "Management Controls", items: facilityNavItems },
+      { category: "Digital Operations", items: digitalNavItems },
     ];
   };
 
@@ -561,15 +570,21 @@ function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
       }}
     >
       <div style={{ padding:"22px 20px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div 
+          onClick={collapsed ? onToggle : undefined}
+          style={{ display:"flex", alignItems:"center", gap:10, cursor: collapsed ? "pointer" : "default" }}
+        >
           <div style={{
-            width:32, height:32, background:C.blue, borderRadius:8,
+            width:32, height:32, background: role === "staff" ? C.green : C.blue, borderRadius:8,
             display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:15, fontWeight:800, color:"#fff", flexShrink: 0
+            fontSize:15, fontWeight:800, color:"#fff", flexShrink: 0,
+            transition: "background 0.3s"
           }}>K</div>
           <motion.div animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}>
             <div style={{ fontSize:15, fontWeight:700, color:C.text, letterSpacing:0.3 }}>KEDGE</div>
-            <div style={{ fontSize:10, color:C.textDim, letterSpacing:0.5, textTransform:"uppercase" }}>Console</div>
+            <div style={{ fontSize:10, color: role === "staff" ? C.green : C.textDim, letterSpacing:0.5, textTransform:"uppercase", fontWeight:600 }}>
+              {role === "staff" ? "Staff Portal" : "Owner Console"}
+            </div>
           </motion.div>
         </div>
         <button onClick={onToggle} style={{ background:"transparent", border:"none", color:C.textMid, cursor:"pointer", display: collapsed ? "none" : "block" }}>
@@ -587,6 +602,8 @@ function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
             </motion.div>
             {section.items.map(({ id, icon, label }) => {
               const on = active === id;
+              const activeColor = role === "staff" ? C.green : C.blue;
+              const activeBg = role === "staff" ? C.greenFaint : C.blueFaint;
               return (
                 <motion.button 
                   key={id} 
@@ -596,9 +613,9 @@ function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
                   style={{
                     display:"flex", alignItems:"center", gap:10, width:"100%",
                     padding:"9px 12px", borderRadius:7, marginBottom:2,
-                    background: on ? C.blueFaint : "transparent",
-                    border:"none", borderLeft:`2px solid ${on ? C.blue : "transparent"}`,
-                    color: on ? C.blue : C.textMid,
+                    background: on ? activeBg : "transparent",
+                    border:"none", borderLeft:`2px solid ${on ? activeColor : "transparent"}`,
+                    color: on ? activeColor : C.textMid,
                     fontSize:13, fontWeight: on ? 600 : 400,
                     cursor:"pointer", textAlign:"left", position: "relative"
                   }}>
@@ -614,21 +631,26 @@ function Sidebar({ active, onSelect, profile, collapsed, onToggle }) {
       <div style={{ padding:"14px 16px", borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10 }}>
         <div style={{
           width:30, height:30, borderRadius:"50%", flexShrink: 0,
-          background:`linear-gradient(135deg, ${C.blue}, #6366F1)`,
+          background: role === "staff" 
+            ? `linear-gradient(135deg, ${C.green}, #059669)` 
+            : `linear-gradient(135deg, ${C.blue}, #6366F1)`,
           display:"flex", alignItems:"center", justifyContent:"center",
           fontSize:12, fontWeight:700, color:"#fff", cursor: "pointer"
-        }} onClick={onToggle}>O</div>
+        }} onClick={onToggle}>{role === "staff" ? "S" : "O"}</div>
         <motion.div animate={{ opacity: collapsed ? 0 : 1 }}>
-          <div style={{ fontSize:13, fontWeight:500, color:C.text }}>Owner</div>
-          <div style={{ fontSize:11, color:C.textDim }}>All Access</div>
+          <div style={{ fontSize:13, fontWeight:500, color:C.text }}>
+            {role === "staff" ? "Rajesh Kumar" : "Owner / Mgmt"}
+          </div>
+          <div style={{ fontSize:11, color:C.textDim }}>
+            {role === "staff" ? "Site Supervisor (South)" : "Full Administrative Access"}
+          </div>
         </motion.div>
       </div>
     </motion.aside>
   );
 }
 
-// ─── Header ───────────────────────────────────────────────────────────────────
-function Header({ label, profile, setProfile }) {
+function Header({ label, role, setRole }) {
   const [time, setTime] = useState("");
   useEffect(() => {
     const tick = () => setTime(new Date().toLocaleTimeString("en-IN", { hour12:false }));
@@ -648,30 +670,33 @@ function Header({ label, profile, setProfile }) {
         <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>Last updated · {time}</div>
       </div>
       <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-        {/* Profile Switcher Pills */}
-        <div style={{
-          display:"flex", background:C.base, border:`1px solid ${C.border}`,
-          borderRadius:8, padding:3, gap:2
-        }}>
-          {[
-            { id: "combined", label: "Combined" },
-            { id: "facility", label: "Facility Ops" },
-            { id: "digital", label: "Digital Ops" }
-          ].map(p => (
-            <button
-              key={p.id}
-              onClick={() => setProfile(p.id)}
-              style={{
-                background: profile === p.id ? C.blue : "transparent",
-                color: profile === p.id ? "#fff" : C.textMid,
-                border: "none", borderRadius: 6, padding: "5px 12px",
-                fontSize: 12, fontWeight: 500, cursor: "pointer",
-                transition: "all 0.15s"
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        {/* Role Switcher Pills */}
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
+          <span style={{ fontSize:10, textTransform:"uppercase", color:C.textDim, fontWeight:600, letterSpacing:0.5 }}>View Mode</span>
+          <div style={{
+            display:"flex", background:C.base, border:`1px solid ${C.border}`,
+            borderRadius:8, padding:3, gap:2
+          }}>
+            {[
+              { id: "owner", label: "🔑 Owner / Mgmt" },
+              { id: "staff", label: "🪪 Staff / Worker" }
+            ].map(r => (
+              <button
+                key={r.id}
+                onClick={() => setRole(r.id)}
+                style={{
+                  background: role === r.id ? (r.id === "staff" ? C.green : C.blue) : "transparent",
+                  color: role === r.id ? "#fff" : C.textMid,
+                  border: "none", borderRadius: 6, padding: "5px 14px",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: role === r.id ? "0 2px 8px rgba(0,0,0,0.3)" : "none"
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{
@@ -687,9 +712,78 @@ function Header({ label, profile, setProfile }) {
 }
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
-function OverviewPage() {
-  const dataMax = Math.max(...revCostData.map(i => i.Profit));
-  const dataMin = Math.min(...revCostData.map(i => i.Profit));
+function StaffOverviewPage() {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
+        <KpiCard label="Next Scheduled Shift" value="18:00 Today" sub="South Zone" change="Shift A - Night" changeUp accent={C.green} />
+        <KpiCard label="Attendance Score" value="98.2%" sub="MTD" change="100% on-time" changeUp accent={C.green} />
+        <KpiCard label="Pending Tasks" value="3" sub="action required" change="1 Urgent Notice" changeUp={false} accent={C.amber} />
+        <KpiCard label="Last Payslip" value="₹24,500" sub="Jul 2026" change="Disbursed Aug 5" changeUp accent={C.blue} />
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:16 }}>
+        <Card title="My Upcoming Shifts" subtitle="Assigned site posts for current week">
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {[
+              { day:"Today (Tue, Aug 25)", time:"18:00 - 02:00", site:"South Zone - Main Gate", status:"Upcoming", color:"green" },
+              { day:"Tomorrow (Wed, Aug 26)", time:"18:00 - 02:00", site:"South Zone - Tower B", status:"Scheduled", color:"green" },
+              { day:"Thursday (Thu, Aug 27)", time:"18:00 - 02:00", site:"South Zone - Main Gate", status:"Scheduled", color:"green" },
+              { day:"Friday (Fri, Aug 28)", time:"—", site:"Weekly Rest Day", status:"Off", color:"amber" },
+              { day:"Saturday (Sat, Aug 29)", time:"08:00 - 16:00", site:"North Zone - Overflow", status:"Scheduled", color:"green" },
+            ].map((s, i) => (
+              <div key={i} style={{
+                display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"10px 14px", borderRadius:8, background:C.base, border:`1px solid ${C.border}`
+              }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{s.day}</div>
+                  <div style={{ fontSize:12, color:C.textMid, marginTop:2 }}>{s.site}</div>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ fontSize:12, fontFamily:C.mono, color:C.textMid }}>{s.time}</span>
+                  <Badge status={s.color} label={s.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Assigned Tasks & Duty Notices" subtitle="Action required">
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <AlertItem level="critical" tag="Required" msg="Complete biometric verification re-enrollment at South Zone office before Aug 28." />
+            <AlertItem level="warning" tag="Notice" msg="New patrol logging procedure active starting Sept 1 — download updated KEDGE Staff App." />
+            <AlertItem level="warning" tag="Grievance" msg="Overtime discrepancy ticket #4821 resolved & added to next payroll." />
+          </div>
+        </Card>
+      </div>
+
+      <Card title="Quick Actions for Staff" subtitle="Self-service portal options">
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14 }}>
+          {[
+            { title:"Apply for Leave", desc:"Request planned leave or casual day off", icon:"📅" },
+            { title:"Download Payslips", desc:"Get salary slips for current fiscal year", icon:"📄" },
+            { title:"Log Incident / Report", desc:"File immediate safety or post report", icon:"⚠️" },
+            { title:"Support & Grievances", desc:"Contact HR or Site Supervisor", icon:"💬" },
+          ].map((act, i) => (
+            <div key={i} style={{
+              background:C.base, border:`1px solid ${C.border}`, borderRadius:8,
+              padding:16, cursor:"pointer", transition:"border-color 0.2s"
+            }}>
+              <div style={{ fontSize:20, marginBottom:8 }}>{act.icon}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{act.title}</div>
+              <div style={{ fontSize:11, color:C.textMid, marginTop:4, lineHeight:1.4 }}>{act.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function OverviewPage({ revCost = revCostData, alertsList = alerts }) {
+  const dataMax = Math.max(...revCost.map(i => i.Profit || 0));
+  const dataMin = Math.min(...revCost.map(i => i.Profit || 0));
   const off = dataMax <= 0 ? 0 : dataMin >= 0 ? 1 : dataMax / (dataMax - dataMin);
 
   return (
@@ -704,7 +798,7 @@ function OverviewPage() {
         <Card title="Profit/Loss Trend" subtitle="Revenue, Cost & Net Profit · ₹ Lakhs">
           <div style={{ height:200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revCostData}>
+              <LineChart data={revCost}>
                 <defs>
                   <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
                     <stop offset={off} stopColor="#10B981" stopOpacity={1} />
@@ -758,50 +852,9 @@ function OverviewPage() {
         </Card>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:16 }}>
-        <Card title="Traffic Sources" subtitle="Sessions by Channel (Ring Chart Demo)">
-          <div style={{ display: "flex", alignItems: "center", gap: 32, padding: "10px 0" }}>
-            <div style={{ flex: 1, position: "relative", height: 260, display: "flex", justifyContent: "center" }}>
-              <RingChart 
-                data={trafficSourcesData.map(d => ({ label: d.name, value: d.value, maxValue: 100, color: d.color }))}
-                size={260}
-                strokeWidth={14}
-                ringGap={6}
-                baseInnerRadius={55}
-              >
-                {trafficSourcesData.map((_, i) => (
-                  <Ring key={i} index={i} />
-                ))}
-                <RingCenter defaultLabel="Total Share" />
-              </RingChart>
-            </div>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
-              {trafficSourcesData.map((item, idx) => (
-                <div key={idx}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: "50%", background: item.color }} />
-                      <span style={{ color: C.text, fontWeight: 500 }}>{item.name}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 12, fontFamily: C.mono }}>
-                      <span style={{ fontWeight: 600, color: C.text }}>{item.value}%</span>
-                    </div>
-                  </div>
-                  {/* Legend Progress Bar */}
-                  <div style={{ height: 4, background: C.border, borderRadius: 99, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${item.value}%`, background: item.color, borderRadius: 99 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      </div>
-      
-      <Card title="Active Alerts" subtitle={`${alerts.length} items need attention`}>
+      <Card title="Active Alerts" subtitle={`${alertsList.length} items need attention`}>
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {alerts.map((a, i) => <AlertItem key={i} {...a} />)}
+          {alertsList.map((a, i) => <AlertItem key={i} {...a} />)}
         </div>
       </Card>
     </div>
@@ -1831,47 +1884,360 @@ function CombinedOverviewPage() {
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
+// ─── Data Ingestion Page Component ───────────────────────────────────────────
+function DataIngestionPage({ onIngestData }) {
+  const [file, setFile] = useState(null);
+  const [parsedRows, setParsedRows] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [targetDataset, setTargetDataset] = useState("revCost");
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [statusMsg, setStatusMsg] = useState(null);
+  const [ingestLogs, setIngestLogs] = useState([
+    { id: 1, name: "q2_financials_final.csv", target: "Revenue & Profit Trends", rows: 6, time: "Today, 18:42", status: "Success" },
+    { id: 2, name: "north_zone_shifts_aug.csv", target: "Zone Guard Allocation", rows: 4, time: "Yesterday, 11:15", status: "Success" }
+  ]);
+
+  const handleFileSelect = (selectedFile) => {
+    if (!selectedFile) return;
+    setFile(selectedFile);
+    setStatusMsg(null);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      parseCSV(text);
+    };
+    reader.readAsText(selectedFile);
+  };
+
+  const parseCSV = (csvText) => {
+    const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== "");
+    if (lines.length === 0) return;
+
+    const parsedHeaders = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+    const rows = lines.slice(1).map(line => {
+      const values = line.split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+      const rowObj = {};
+      parsedHeaders.forEach((h, idx) => {
+        rowObj[h] = values[idx] || "";
+      });
+      return rowObj;
+    });
+
+    setHeaders(parsedHeaders);
+    setParsedRows(rows);
+  };
+
+  const downloadSampleCSV = (type) => {
+    let content = "";
+    let filename = "";
+    if (type === "revCost") {
+      filename = "sample_revenue_cost.csv";
+      content = "month,Revenue,Cost,Profit\nJul,195,142,53\nAug,210,148,62\nSep,225,152,73\nOct,240,160,80";
+    } else if (type === "alerts") {
+      filename = "sample_alerts.csv";
+      content = "level,tag,msg\ncritical,Security Breach,Unverified entry reported at East Perimeter Gate 3.\nwarning,Attendance Drop,South Zone shift coverage dropped to 88% due to transport delay.\nwarning,Equipment Defect,CCTV Sensor #14 offline for maintenance.";
+    } else if (type === "zones") {
+      filename = "sample_zone_roster.csv";
+      content = "zone,posts,cov,tag\nCentral Hub Zone,35 / 35,100%,Optimal\nNorth Industrial,42 / 45,93%,Good\nWest Commercial,18 / 24,75%,Understaffed";
+    }
+
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleApplyIngestion = () => {
+    if (parsedRows.length === 0) return;
+
+    onIngestData(targetDataset, parsedRows);
+
+    const targetLabel = targetDataset === "revCost" ? "Revenue & Profit Trends" : targetDataset === "alerts" ? "Active Operational Alerts" : "Zone Guard Allocation";
+
+    setIngestLogs(prev => [
+      {
+        id: Date.now(),
+        name: file ? file.name : "custom_ingested.csv",
+        target: targetLabel,
+        rows: parsedRows.length,
+        time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+        status: "Success"
+      },
+      ...prev
+    ]);
+
+    setStatusMsg({ type: "success", text: `Successfully ingested ${parsedRows.length} records into ${targetLabel}!` });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <Card title="Data Ingestion & CSV Batch Upload" subtitle="Upload spreadsheets to update live dashboard charts and KPIs in real-time">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13, color: C.textMid, maxWidth: 500, lineHeight: 1.5 }}>
+            Upload customer CSV spreadsheets to dynamically re-populate financial graphs, alert feeds, or guard roster tables across the entire command center.
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={() => downloadSampleCSV("revCost")}
+              style={{ background: C.base, border: `1px solid ${C.border}`, color: C.text, padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              📥 Revenue Sample CSV
+            </button>
+            <button
+              onClick={() => downloadSampleCSV("alerts")}
+              style={{ background: C.base, border: `1px solid ${C.border}`, color: C.text, padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              📥 Alerts Sample CSV
+            </button>
+            <button
+              onClick={() => downloadSampleCSV("zones")}
+              style={{ background: C.base, border: `1px solid ${C.border}`, color: C.text, padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              📥 Zone Roster CSV
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16 }}>
+        <Card title="1. Select or Drag CSV File" subtitle="Supported formats: .csv, .txt (Comma separated values)">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFileSelect(e.dataTransfer.files[0]);
+              }
+            }}
+            style={{
+              border: `2px dashed ${isDragOver ? C.blue : C.borderLight}`,
+              borderRadius: 10,
+              padding: "36px 20px",
+              textAlign: "center",
+              background: isDragOver ? C.blueFaint : C.base,
+              transition: "all 0.2s ease",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              cursor: "pointer"
+            }}
+            onClick={() => document.getElementById("csvInput").click()}
+          >
+            <input
+              id="csvInput"
+              type="file"
+              accept=".csv, .txt"
+              style={{ display: "none" }}
+              onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+            />
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: C.blue, border: `1px solid ${C.border}` }}>
+              📂
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                {file ? file.name : "Click to browse or drop CSV file here"}
+              </div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>
+                {file ? `${(file.size / 1024).toFixed(1)} KB • ${parsedRows.length} rows detected` : "Maximum file size 10MB"}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="2. Map Target & Ingest" subtitle="Choose which dashboard section to update">
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textMid }}>Select Target Dataset:</label>
+              <select
+                value={targetDataset}
+                onChange={(e) => setTargetDataset(e.target.value)}
+                style={{
+                  background: C.base, border: `1px solid ${C.border}`, color: C.text,
+                  padding: "10px 12px", borderRadius: 8, fontSize: 13, outline: "none"
+                }}
+              >
+                <option value="revCost">Revenue & Cost Financial Trend (Line Chart)</option>
+                <option value="alerts">Active Operational Alerts Feed</option>
+                <option value="zones">Zone Guard Deployment Roster</option>
+              </select>
+
+              <div style={{ background: C.base, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, fontSize: 12, color: C.textMid, lineHeight: 1.5, marginTop: 4 }}>
+                <span style={{ color: C.blue, fontWeight: 600 }}>Schema Requirement:</span>
+                {targetDataset === "revCost" && " Requires columns: month, Revenue, Cost, Profit (e.g. Jul, 195, 142, 53)"}
+                {targetDataset === "alerts" && " Requires columns: level, tag, msg (e.g. critical, SLA, West Zone breach)"}
+                {targetDataset === "zones" && " Requires columns: zone, posts, cov, tag (e.g. West Zone, 22 / 26, 85%, Understaffed)"}
+              </div>
+            </div>
+
+            {statusMsg && (
+              <div style={{
+                padding: "10px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                background: statusMsg.type === "success" ? C.greenFaint : C.redFaint,
+                color: statusMsg.type === "success" ? C.green : C.red,
+                border: `1px solid ${statusMsg.type === "success" ? C.green + '40' : C.red + '40'}`
+              }}>
+                {statusMsg.text}
+              </div>
+            )}
+
+            <button
+              onClick={handleApplyIngestion}
+              disabled={parsedRows.length === 0}
+              style={{
+                background: parsedRows.length > 0 ? C.blue : C.border,
+                color: parsedRows.length > 0 ? "#fff" : C.textDim,
+                border: "none", borderRadius: 8, padding: "12px 16px",
+                fontSize: 13, fontWeight: 700, cursor: parsedRows.length > 0 ? "pointer" : "not-allowed",
+                transition: "all 0.2s ease"
+              }}
+            >
+              🚀 Ingest {parsedRows.length > 0 ? `${parsedRows.length} Records` : "Data"} into Dashboard
+            </button>
+          </div>
+        </Card>
+      </div>
+
+      {parsedRows.length > 0 && (
+        <Card title={`Parsed Preview (${parsedRows.length} Records)`} subtitle="First 10 rows extracted from uploaded file">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+              <thead>
+                <tr style={{ background: C.base, borderBottom: `1px solid ${C.border}` }}>
+                  {headers.map((h, i) => (
+                    <th key={i} style={{ padding: "10px 14px", color: C.blue, textTransform: "uppercase", fontSize: 10, letterSpacing: 0.5 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {parsedRows.slice(0, 10).map((row, rIdx) => (
+                  <tr key={rIdx} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {headers.map((h, cIdx) => (
+                      <td key={cIdx} style={{ padding: "10px 14px", color: C.text, fontFamily: C.mono }}>{row[h]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      <Card title="Ingestion History & Audit Trail" subtitle="Recent data imports performed in this session">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {ingestLogs.map((log) => (
+            <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: C.base, borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 16 }}>📄</span>
+                <div>
+                  <div style={{ fontWeight: 600, color: C.text }}>{log.name}</div>
+                  <div style={{ fontSize: 11, color: C.textMid, marginTop: 2 }}>Target: {log.target} • {log.rows} records</div>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ color: C.green, fontWeight: 600, display: "block" }}>{log.status}</span>
+                <span style={{ fontSize: 10, color: C.textDim, fontFamily: C.mono }}>{log.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function KEDGEDashboard() {
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState("combined");
+  const [role, setRole] = useState("owner"); // "owner" | "staff"
   const [activePage, setActivePage] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Keep page aligned when profile changes
-  useEffect(() => {
-    if (profile === "facility") {
-      if (!facilityNavItems.some(i => i.id === activePage)) {
-        setActivePage("overview");
-      }
-    } else if (profile === "digital") {
-      if (!digitalNavItems.some(i => i.id === activePage)) {
-        setActivePage("webtraffic");
-      }
-    } else if (profile === "combined") {
-      if (activePage === "webtraffic" || activePage === "livequeue" || activePage === "webvitals" || activePage === "supportteam") {
-        // keep it or switch to overview
-      }
-    }
-  }, [profile]);
+  // Dynamic datasets for Ingestion Module
+  const [liveRevCostData, setLiveRevCostData] = useState(revCostData);
+  const [liveAlertsData, setLiveAlertsData] = useState(alerts);
+  const [liveZoneRowsData, setLiveZoneRowsData] = useState(zoneRows);
 
-  const pages = {
-    // Facility Ops
-    overview:     { label: profile === "combined" ? "Combined Command Center" : "Overview", Component: profile === "combined" ? CombinedOverviewPage : OverviewPage },
-    security:     { label:"Security Operations", Component: SecurityPage },
-    housekeeping: { label:"Housekeeping Operations", Component: HousekeepingPage },
-    payroll:      { label:"Payroll Management",  Component: PayrollPage },
-    vendors:      { label:"Vendors & Contracts", Component: VendorsPage },
-    financials:   { label:"Financial Snapshot",  Component: FinancialsPage },
-    
-    // Digital Ops
-    webtraffic:   { label:"Web Traffic Analytics", Component: WebTrafficPage },
-    livequeue:    { label:"Live Queue",          Component: LiveQueuePage },
-    webvitals:    { label:"Core Web Vitals",     Component: WebVitalsPage },
-    supportteam:  { label:"Support Team Queue",  Component: SupportTeamPage },
+  const handleIngestData = (targetDataset, rows) => {
+    if (targetDataset === "revCost") {
+      const formatted = rows.map(r => ({
+        month: r.month || r.Month || "New",
+        Revenue: Number(r.Revenue) || 0,
+        Cost: Number(r.Cost) || 0,
+        Profit: Number(r.Profit) || 0,
+      }));
+      setLiveRevCostData(formatted);
+    } else if (targetDataset === "alerts") {
+      const formatted = rows.map(r => ({
+        level: r.level || "warning",
+        tag: r.tag || "Custom Alert",
+        msg: r.msg || r.message || "Ingested security event."
+      }));
+      setLiveAlertsData(formatted);
+    } else if (targetDataset === "zones") {
+      const formatted = rows.map(r => ({
+        zone: r.zone || "New Zone",
+        posts: r.posts || "10 / 10",
+        cov: r.cov || "100%",
+        status: (r.tag || "").toLowerCase().includes("under") ? "red" : "green",
+        tag: r.tag || "Active"
+      }));
+      setLiveZoneRowsData(formatted);
+    }
   };
 
-  const { label, Component } = pages[activePage] || pages["overview"];
+  // Guarantee loading screen dismissal after initial mount
+  useEffect(() => {
+    const loaderTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+    return () => clearTimeout(loaderTimer);
+  }, []);
+
+  // Keep active page valid when switching roles
+  useEffect(() => {
+    if (role === "staff") {
+      if (!staffNavItems.some(i => i.id === activePage)) {
+        setActivePage("staff_overview");
+      }
+    } else {
+      if (activePage === "staff_overview" || activePage === "attendance" || activePage === "payslips" || activePage === "tasks" || activePage === "notices") {
+        setActivePage("overview");
+      }
+    }
+  }, [role]);
+
+  const pages = {
+    // Owner / Management Views
+    overview:       { label: "Owner Command Center", Component: () => <OverviewPage revCost={liveRevCostData} alertsList={liveAlertsData} /> },
+    security:       { label: "Security Operations & Post Coverage", Component: SecurityPage },
+    housekeeping:   { label: "Housekeeping Operations & Audits", Component: HousekeepingPage },
+    payroll:        { label: "Payroll & Statutory Disbursals", Component: PayrollPage },
+    vendors:        { label: "Vendors & Contract Compliance", Component: VendorsPage },
+    financials:     { label: "Financial Snapshot & Margin Analysis", Component: FinancialsPage },
+    
+    // Digital Ops Views
+    dataingestion:  { label: "Data Ingestion & CSV Import Hub", Component: () => <DataIngestionPage onIngestData={handleIngestData} /> },
+    webtraffic:     { label: "Web Traffic Analytics", Component: WebTrafficPage },
+    livequeue:      { label: "Live Queue & Support Metrics", Component: LiveQueuePage },
+    webvitals:      { label: "Core Web Vitals RUM", Component: WebVitalsPage },
+    supportteam:    { label: "Support Team Shift Queue", Component: SupportTeamPage },
+
+    // Staff / Worker Views
+    staff_overview: { label: "My Staff Portal Dashboard", Component: StaffOverviewPage },
+    attendance:     { label: "My Attendance & Shift Roster", Component: StaffOverviewPage },
+    payslips:       { label: "My Salary & Payslip Documents", Component: StaffOverviewPage },
+    tasks:          { label: "My Assigned Post Tasks", Component: StaffOverviewPage },
+    notices:        { label: "Company Notices & Guidelines", Component: StaffOverviewPage },
+  };
+
+  const { label, Component } = pages[activePage] || (role === "staff" ? pages["staff_overview"] : pages["overview"]);
 
   return (
     <>
@@ -1907,13 +2273,13 @@ export default function KEDGEDashboard() {
       </AnimatePresence>
 
       <div style={{ display:"flex", minHeight:"100vh", background:C.base, fontFamily:C.sans, color:C.text }}>
-        <Sidebar active={activePage} onSelect={setActivePage} profile={profile} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <Sidebar active={activePage} onSelect={setActivePage} role={role} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
         <motion.div 
           animate={{ marginLeft: sidebarCollapsed ? 80 : 220 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           style={{ flex:1, display:"flex", flexDirection:"column" }}
         >
-          <Header label={label} profile={profile} setProfile={setProfile} />
+          <Header label={label} role={role} setRole={setRole} />
           <main style={{ padding:"24px 28px 48px", flex:1, position: "relative" }}>
             <AnimatePresence mode="wait">
               <motion.div
